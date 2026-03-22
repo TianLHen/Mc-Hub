@@ -43,10 +43,10 @@ export default defineNuxtConfig({
     },
   },
   
-  // CSS配置
-  css: [
-    '~/assets/css/main.css',
-  ],
+  // CSS配置 - 已通过 Tailwind 模块加载
+  // css: [
+  //   '~/assets/css/main.css',
+  // ],
   
   // Element Plus配置
   elementPlus: {
@@ -57,6 +57,7 @@ export default defineNuxtConfig({
   tailwindcss: {
     configPath: 'tailwind.config.ts',
     exposeConfig: true,
+    cssPath: '~/assets/css/main.css',
   },
   
   // 自动导入配置

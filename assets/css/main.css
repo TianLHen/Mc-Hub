@@ -1,5 +1,9 @@
 /* MC Hub - 主样式文件 */
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* 主色调 - Minecraft绿色 */
   --primary-50: #f0fdf0;
