@@ -1,6 +1,7 @@
 // 资源状态管理 - Supabase 版本
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useSupabase } from '~/composables/useSupabase'
 
 export interface Resource {
   id: string
@@ -41,7 +42,6 @@ export const useResourceStore = defineStore('resources', () => {
   
   // 获取 Supabase 客户端
   const getSupabase = () => {
-    const { useSupabase } = require('~/composables/useSupabase')
     return useSupabase()
   }
   

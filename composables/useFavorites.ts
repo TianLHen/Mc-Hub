@@ -1,5 +1,6 @@
 // 收藏功能
 import { ref } from 'vue'
+import { useSupabase } from '~/composables/useSupabase'
 
 export interface Favorite {
   id: string
@@ -21,7 +22,6 @@ export const useFavorites = () => {
   
   // 获取 Supabase 客户端
   const getSupabase = () => {
-    const { useSupabase } = require('~/composables/useSupabase')
     return useSupabase()
   }
   

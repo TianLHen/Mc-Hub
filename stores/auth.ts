@@ -1,6 +1,7 @@
 // 用户状态管理 - Supabase 版本
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useSupabase } from '~/composables/useSupabase'
 
 export const useAuthStore = defineStore('auth', () => {
   // 状态
@@ -16,7 +17,6 @@ export const useAuthStore = defineStore('auth', () => {
   
   // 获取 Supabase 客户端
   const getSupabase = () => {
-    const { useSupabase } = require('~/composables/useSupabase')
     return useSupabase()
   }
   

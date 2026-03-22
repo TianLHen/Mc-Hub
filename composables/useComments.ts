@@ -1,5 +1,6 @@
 // 评论功能
 import { ref } from 'vue'
+import { useSupabase } from '~/composables/useSupabase'
 
 export interface Comment {
   id: string
@@ -20,7 +21,6 @@ export const useComments = () => {
   
   // 获取 Supabase 客户端
   const getSupabase = () => {
-    const { useSupabase } = require('~/composables/useSupabase')
     return useSupabase()
   }
   
