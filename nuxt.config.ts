@@ -3,6 +3,19 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
   
+  // 开发服务器配置
+  devServer: {
+    port: 8080,
+  },
+  
+  // 运行时配置（环境变量）
+  runtimeConfig: {
+    public: {
+      supabaseUrl: process.env.SUPABASE_URL,
+      supabaseKey: process.env.SUPABASE_KEY,
+    },
+  },
+  
   // 模块配置
   modules: [
     '@nuxtjs/tailwindcss',

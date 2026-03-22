@@ -231,10 +231,7 @@ const error = computed(() => authStore.error)
 // 方法
 const handleLogin = async () => {
   authStore.clearError()
-  const success = await authStore.login({
-    email: email.value,
-    password: password.value,
-  })
+  const success = await authStore.login(email.value, password.value)
   
   if (success) {
     router.push('/')

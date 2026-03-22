@@ -10,13 +10,20 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },
-  "keywords": ["minecraft", "我的世界", "社区", "模组", "整合包"],
+  "keywords": [
+    "minecraft",
+    "我的世界",
+    "社区",
+    "模组",
+    "整合包"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@element-plus/nuxt": "^1.1.5",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@pinia/nuxt": "^0.11.3",
+    "@supabase/supabase-js": "^2.99.3",
     "@vueuse/core": "^14.2.1",
     "@vueuse/nuxt": "^14.2.1",
     "element-plus": "^2.13.5",

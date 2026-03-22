@@ -1,106 +1,90 @@
-// 用户状态管理
+// 用户状态管理 - Supabase 版本
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { User, LoginCredentials, RegisterData } from '~/types'
+import { useSupabase } from '~/composables/useSupabase'
 
 export const useAuthStore = defineStore('auth', () => {
   // 状态
-  const user = ref<User | null>(null)
-  const token = ref<string | null>(null)
+  const user = ref<any>(null)
+  const profile = ref<any>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   
   // 计算属性
-  const isLoggedIn = computed(() => !!user.value && !!token.value)
-  const username = computed(() => user.value?.username || '')
-  const avatar = computed(() => user.value?.avatar || '/images/default-avatar.png')
+  const isLoggedIn = computed(() => !!user.value)
+  const username = computed(() => profile.value?.username || user.value?.email?.split('@')[0] || '')
+  const avatar = computed(() => profile.value?.avatar_url || '/images/default-avatar.png')
   
-  // 初始化
-  const initAuth = () => {
-    const savedToken = localStorage.getItem('mc-hub-token')
-    const savedUser = localStorage.getItem('mc-hub-user')
-    
-    if (savedToken && savedUser) {
-      token.value = savedToken
-      try {
-        user.value = JSON.parse(savedUser)
-      } catch (e) {
-        console.error('Failed to parse saved user:', e)
-        logout()
-      }
-    }
+  // 获取 Supabase 客户端
+  const getSupabase = () => {
+    return useSupabase()
   }
   
-  // 登录
-  const login = async (credentials: LoginCredentials): Promise<boolean> => {
-    isLoading.value = true
-    error.value = null
+  // 初始化：检查登录状态
+  const initAuth = async () => {
+    const supabase = getSupabase()
     
-    try {
-      // TODO: 替换为实际API调用
-      // 模拟登录成功
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const mockUser: User = {
-        id: '1',
-        username: '测试用户',
-        email: credentials.email,
-        avatar: undefined,
-        bio: '这是一个测试用户',
-        level: 5,
-        points: 1000,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-      
-      user.value = mockUser
-      token.value = 'mock-token-' + Date.now()
-      
-      // 保存到本地存储
-      localStorage.setItem('mc-hub-token', token.value)
-      localStorage.setItem('mc-hub-user', JSON.stringify(user.value))
-      
-      return true
-    } catch (e: any) {
-      error.value = e.message || '登录失败'
-      return false
-    } finally {
-      isLoading.value = false
+    // 获取当前用户
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+    if (currentUser) {
+      user.value = currentUser
+      await fetchProfile()
     }
+    
+    // 监听登录状态变化
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      user.value = session?.user || null
+      if (user.value) {
+        await fetchProfile()
+      } else {
+        profile.value = null
+      }
+    })
+  }
+  
+  // 获取用户资料
+  const fetchProfile = async () => {
+    if (!user.value) return
+    
+    const supabase = getSupabase()
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.value.id)
+      .single()
+    
+    profile.value = data
   }
   
   // 注册
-  const register = async (data: RegisterData): Promise<boolean> => {
+  const register = async (email: string, password: string, username: string): Promise<boolean> => {
     isLoading.value = true
     error.value = null
     
     try {
-      // 验证密码
-      if (data.password !== data.confirmPassword) {
-        throw new Error('两次输入的密码不一致')
+      const supabase = getSupabase()
+      
+      // 1. 创建用户
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      })
+      
+      if (signUpError) throw signUpError
+      
+      // 2. 创建用户资料
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            username,
+            avatar_url: null,
+            bio: '',
+          })
+        
+        if (profileError) throw profileError
       }
-      
-      // TODO: 替换为实际API调用
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const mockUser: User = {
-        id: '1',
-        username: data.username,
-        email: data.email,
-        avatar: undefined,
-        bio: '',
-        level: 1,
-        points: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-      
-      user.value = mockUser
-      token.value = 'mock-token-' + Date.now()
-      
-      // 保存到本地存储
-      localStorage.setItem('mc-hub-token', token.value)
-      localStorage.setItem('mc-hub-user', JSON.stringify(user.value))
       
       return true
     } catch (e: any) {
@@ -111,22 +95,55 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
   
-  // 退出登录
-  const logout = () => {
-    user.value = null
-    token.value = null
+  // 登录
+  const login = async (email: string, password: string): Promise<boolean> => {
+    isLoading.value = true
     error.value = null
     
-    localStorage.removeItem('mc-hub-token')
-    localStorage.removeItem('mc-hub-user')
+    try {
+      const supabase = getSupabase()
+      
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      
+      if (signInError) throw signInError
+      
+      return true
+    } catch (e: any) {
+      error.value = e.message || '登录失败'
+      return false
+    } finally {
+      isLoading.value = false
+    }
   }
   
-  // 更新用户信息
-  const updateUser = (userData: Partial<User>) => {
-    if (user.value) {
-      user.value = { ...user.value, ...userData }
-      localStorage.setItem('mc-hub-user', JSON.stringify(user.value))
+  // 退出登录
+  const logout = async () => {
+    const supabase = getSupabase()
+    await supabase.auth.signOut()
+    user.value = null
+    profile.value = null
+  }
+  
+  // 更新用户资料
+  const updateProfile = async (data: { username?: string; bio?: string; avatar_url?: string }) => {
+    if (!user.value) return false
+    
+    const supabase = getSupabase()
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update(data)
+      .eq('id', user.value.id)
+    
+    if (updateError) {
+      error.value = updateError.message
+      return false
     }
+    
+    await fetchProfile()
+    return true
   }
   
   // 清除错误
@@ -136,17 +153,17 @@ export const useAuthStore = defineStore('auth', () => {
   
   return {
     user,
-    token,
+    profile,
     isLoading,
     error,
     isLoggedIn,
     username,
     avatar,
     initAuth,
-    login,
     register,
+    login,
     logout,
-    updateUser,
+    updateProfile,
     clearError,
   }
 })
