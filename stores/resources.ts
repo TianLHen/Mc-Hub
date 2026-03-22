@@ -27,6 +27,23 @@ export const useResourceStore = defineStore('resources', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   
+  // 筛选条件
+  const filter = ref({
+    type: undefined as string | undefined,
+    search: '',
+    sort: 'newest' as 'downloads' | 'rating' | 'newest' | 'updated',
+    page: 1,
+    pageSize: 12,
+  })
+  
+  // 分页信息
+  const pagination = ref({
+    page: 1,
+    pageSize: 12,
+    total: 0,
+    totalPages: 0,
+  })
+  
   // 计算属性
   const getLatestResources = computed(() => {
     return [...resources.value]
@@ -46,27 +63,64 @@ export const useResourceStore = defineStore('resources', () => {
   }
   
   // 获取资源列表
-  const fetchResources = async (type?: string, search?: string) => {
+  const fetchResources = async (params?: { 
+    type?: string; 
+    search?: string; 
+    sort?: 'downloads' | 'rating' | 'newest' | 'updated';
+    page?: number;
+    pageSize?: number;
+  }) => {
     isLoading.value = true
     error.value = null
+    
+    // 更新筛选条件
+    if (params) {
+      if (params.type !== undefined) filter.value.type = params.type
+      if (params.search !== undefined) filter.value.search = params.search
+      if (params.sort !== undefined) filter.value.sort = params.sort
+      if (params.page !== undefined) filter.value.page = params.page
+      if (params.pageSize !== undefined) filter.value.pageSize = params.pageSize
+    }
     
     try {
       const supabase = getSupabase()
       
       let query = supabase
         .from('resources')
-        .select('*, profiles!author_id(username, avatar_url)')
-        .order('created_at', { ascending: false })
+        .select('*, profiles!author_id(username, avatar_url)', { count: 'exact' })
       
-      if (type) {
-        query = query.eq('type', type)
+      // 筛选类型
+      if (filter.value.type) {
+        query = query.eq('type', filter.value.type)
       }
       
-      if (search) {
-        query = query.ilike('name', `%${search}%`)
+      // 搜索
+      if (filter.value.search) {
+        query = query.ilike('name', `%${filter.value.search}%`)
       }
       
-      const { data, error: fetchError } = await query
+      // 排序
+      switch (filter.value.sort) {
+        case 'downloads':
+          query = query.order('downloads', { ascending: false })
+          break
+        case 'rating':
+          query = query.order('rating', { ascending: false })
+          break
+        case 'newest':
+          query = query.order('created_at', { ascending: false })
+          break
+        case 'updated':
+          query = query.order('created_at', { ascending: false })
+          break
+      }
+      
+      // 分页
+      const from = (filter.value.page - 1) * filter.value.pageSize
+      const to = from + filter.value.pageSize - 1
+      query = query.range(from, to)
+      
+      const { data, error: fetchError, count } = await query
       
       if (fetchError) throw fetchError
       
@@ -74,6 +128,12 @@ export const useResourceStore = defineStore('resources', () => {
         ...item,
         author: item.profiles,
       })) || []
+      
+      // 更新分页信息
+      pagination.value.total = count || 0
+      pagination.value.totalPages = Math.ceil((count || 0) / filter.value.pageSize)
+      pagination.value.page = filter.value.page
+      pagination.value.pageSize = filter.value.pageSize
     } catch (e: any) {
       error.value = e.message
     } finally {
@@ -199,6 +259,8 @@ export const useResourceStore = defineStore('resources', () => {
     currentResource,
     isLoading,
     error,
+    filter,
+    pagination,
     getLatestResources,
     getHotResources,
     fetchResources,
